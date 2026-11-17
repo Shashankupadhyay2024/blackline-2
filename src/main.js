@@ -73,6 +73,7 @@ function showScreen(id) {
 }
 function updateContinue() { const sv = Store.get('save', null); $('btn-continue').disabled = !sv; $('btn-continue').textContent = sv ? 'CONTINUE — ' + chapterOf(sv.mission || 1).title : 'CONTINUE'; }
 function toMenu() {
+  if (LV.mode) { location.href = location.pathname; return; }
   state = 'menu'; if (document.pointerLockElement) document.exitPointerLock();
   $('hud').classList.add('hidden'); showScreen('menu'); updateContinue();
   AudioSys.combatTarget = 0; AudioSys.engineStop(); document.body.classList.remove('cine');
@@ -94,7 +95,7 @@ function startChapter(n) {
   AudioSys.init();
   Object.assign(stats, { kills: 0, heads: 0, shots: 0, hits: 0, deaths: 0 });
   stats.start = gameTime;
-  Store.set('save', { mission: n, cp: 0, fresh: true });
+  if (!LV.mode) Store.set('save', { mission: n, cp: 0, fresh: true });
   resetLevel(0, null);
   requestLock();
   playIntro();
@@ -153,6 +154,7 @@ function startFlyover() {
 function missionComplete() {
   state = 'end'; AudioSys.combatTarget = 0; Countdown.stop();
   if (document.pointerLockElement) document.exitPointerLock();
+  if (LV.mode) { $('fade').classList.add('on'); setTimeout(() => { $('fade').classList.remove('on'); LV.complete(); }, 1200); return; }
   if (!LV.flashback) storeCarry();
   if (LV.id < LAST_CH) { unlockChapter(LV.id + 1); Store.set('save', { mission: LV.id + 1, cp: 0, fresh: true }); } else Store.del('save');
   $('fade').classList.add('on');
@@ -171,6 +173,7 @@ function showEnding(o) {
     const acc = stats.shots ? Math.round(stats.hits / stats.shots * 100) : 0, t = Math.round(gameTime - stats.start);
     $('end-ch').textContent = o.chapter; $('end-title').textContent = o.title; $('end-tease').textContent = o.tease || '';
     $('end-stats').innerHTML = `<div><b>${stats.kills}</b>kills</div><div><b>${stats.heads}</b>headshots</div><div><b>${acc}%</b>accuracy</div><div><b>${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}</b>time</div><div><b>${stats.deaths}</b>deaths</div>`;
+    $('btn-e-replay').textContent = LV.mode ? 'PLAY AGAIN' : 'REPLAY CHAPTER';
     $('btn-e-next').style.display = o.next ? '' : 'none'; $('btn-e-next').textContent = o.next ? 'CONTINUE — ' + chapterOf(o.next).title : '';
     $('btn-e-next').onclick = () => goMission(o.next, 'start');
     $('end-card').classList.add('show');
@@ -224,7 +227,7 @@ let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000); last = now; realTime += dt;
-  if (state === 'play' && !player.alive && player.diedAt !== undefined && realTime - player.diedAt > 1.9) showDeath();
+  if (state === 'play' && !player.alive && player.diedAt !== undefined && realTime - player.diedAt > 1.9) { if (LV.respawn) LV.respawn(); else showDeath(); }
   Pad.poll(dt); padMenus(dt); if (state === 'play' || state === 'intro') padGameplay(dt);
   if (slowUntil && realTime > slowUntil) { timeScale = 1; slowUntil = 0; }
   const gdt = dt * timeScale;
@@ -271,13 +274,13 @@ function update(dt) {
 /* ---------------- boot ---------------- */
 const PARAMS = new URLSearchParams(location.search);
 function pickLevel() {
-  if (PARAMS.get('m') === 'range') return LEVELS.range;
+  const ms = PARAMS.get('m'); if (ms && isNaN(+ms) && LEVELS[ms]) return LEVELS[ms];
   let m = parseInt(PARAMS.get('m'));
   if (!LEVELS[m]) { const sv = Store.get('save', null); m = sv && LEVELS[sv.mission] ? sv.mission : 1; }
   return LEVELS[m];
 }
 function boot() {
-  LV = pickLevel(); Mission.def = LV;
+  LV = pickLevel(); Mission.def = LV; AudioSys.musicMode = LV.music || 'campaign'; if (LV.mode) document.body.classList.add('mode-' + LV.id);
   if (LV.flashback) { document.body.classList.add('flashback'); $('fbtag').textContent = 'FLASHBACK · ' + LV.flashback; }
   $('mission-name').textContent = LV.name;
   const steps = [
@@ -291,6 +294,7 @@ function boot() {
   const next = () => {
     if (i >= steps.length) {
       $('loading').classList.add('hidden'); requestAnimationFrame(frame);
+      if (LV.lobby) { state = 'menu'; showScreen(null); LV.lobby(); return; }
       if (PARAMS.get('start') || PARAMS.get('cont')) { state = 'begin'; showBegin(PARAMS.get('cont') ? 'cont' : 'start'); }
       else { state = 'menu'; showScreen('menu'); updateContinue(); }
       return;
@@ -316,6 +320,7 @@ let _toastT = 0;
 document.querySelectorAll('.mode').forEach(b => b.onclick = () => {
   AudioSys.init(); AudioSys.ui('click'); const m = b.dataset.mode;
   if (m === 'campaign') { $('campaign-sub').classList.remove('hidden'); $('menu').classList.add('sub'); updateContinue(); return; }
+  if (LEVELS[m] || m === 'zombies' || m === 'br' || m === 'horror') { location.href = location.pathname + '?m=' + m + '&start=1'; return; }
   const t = $('m2-toast'); t.textContent = MODE_TXT[m]; t.classList.remove('hidden'); clearTimeout(_toastT); _toastT = setTimeout(() => t.classList.add('hidden'), 3200);
 });
 $('btn-camp-back').onclick = () => { AudioSys.ui('click'); $('campaign-sub').classList.add('hidden'); $('menu').classList.remove('sub'); };
@@ -347,7 +352,7 @@ window.__BL = {
   enter() { findInteract(); const t = interactTarget; if (t) t.act(); return t && t.label; },
   look(yaw, pitch) { player.yaw = yaw; player.pitch = pitch || 0; },
   keys, mouseDown, give: giveWeapon, weapon(k) { switchWeapon(k); }, rigs: () => Rigs, buildHuman, CharLib, stats, castRay, colliders: () => colliders, terrainH, camera, tp(x, z, y) { player.pos.set(x, y !== undefined ? y : groundAt(x, z, 999), z); player.vel.set(0, 0, 0); }, get gameTime() { return gameTime; },
-  sim(sec) { const n = Math.round(sec * 30); for (let i = 0; i < n; i++) { realTime += 1 / 30; if (slowUntil && realTime > slowUntil) { timeScale = 1; slowUntil = 0; } Pad.poll(1 / 30); padMenus(1 / 30); if (state === 'play' || state === 'intro') padGameplay(1 / 30); if (state === 'play' || state === 'dead') update(1 / 30 * timeScale); mouseDX = mouseDY = 0; firePressed = false; if (state === 'play' && !player.alive && realTime - player.diedAt > 1.9) showDeath(); } return state; },
-  standIn: (x, z, o) => standIn(x, z, o), Voice, detonate, addEnemy, audio: () => AudioSys, vm: () => VM, opt: () => W_OPT, goStep(i) { Mission.go(i); }, save() { const st = state; state = 'play'; saveCheckpoint(); state = st; }, die() { hurtPlayer(99999); }, restart() { restartCheckpoint(); }, showDeath() { showDeath(); }, go: goMission, mouse(dx, dy) { mouseDX = dx; mouseDY = dy; }
+  sim(sec) { const n = Math.round(sec * 30); for (let i = 0; i < n; i++) { realTime += 1 / 30; if (slowUntil && realTime > slowUntil) { timeScale = 1; slowUntil = 0; } Pad.poll(1 / 30); padMenus(1 / 30); if (state === 'play' || state === 'intro') padGameplay(1 / 30); if (state === 'play' || state === 'dead') update(1 / 30 * timeScale); mouseDX = mouseDY = 0; firePressed = false; if (state === 'play' && !player.alive && realTime - player.diedAt > 1.9) { if (LV.respawn) LV.respawn(); else showDeath(); } } return state; },
+  standIn: (x, z, o) => standIn(x, z, o), its: () => interactables, navNext, nearestVisibleNode, NAV, navClear, Voice, detonate, addEnemy, audio: () => AudioSys, vm: () => VM, opt: () => W_OPT, goStep(i) { Mission.go(i); }, save() { const st = state; state = 'play'; saveCheckpoint(); state = st; }, die() { hurtPlayer(99999); }, restart() { restartCheckpoint(); }, showDeath() { showDeath(); }, go: goMission, mouse(dx, dy) { mouseDX = dx; mouseDY = dy; }
 };
 boot();

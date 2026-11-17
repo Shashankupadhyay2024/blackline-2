@@ -140,6 +140,10 @@ function navClear(a, b) {
   const o = _v4.set(a.x, (a.y || 0) > 0.3 ? a.y : 1.0, a.z);
   return !castRay(o, _v5, d, { noEnemies: true, noTerrain: true });
 }
+function navClearWide(a, b) {   // a body-width corridor, not just a thin ray
+  const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1, ox = -dz / L * 0.45, oz = dx / L * 0.45;
+  return navClear(a, b) && navClear(new V3(a.x + ox, a.y, a.z + oz), new V3(b.x + ox, b.y, b.z + oz)) && navClear(new V3(a.x - ox, a.y, a.z - oz), new V3(b.x - ox, b.y, b.z - oz));
+}
 function nearestVisibleNode(p) {
   const order = NAV.nodes.map((n, i) => [i, (n.x - p.x) ** 2 + (n.z - p.z) ** 2]).sort((a, b) => a[1] - b[1]);
   const q = new V3(p.x, (p.y || 0) + 1.0, p.z);
@@ -161,6 +165,7 @@ function navNext(from, to) {
   if (!isFinite(dist[g])) return NAV.nodes[s];
   let path = [g]; while (path[0] !== s) path.unshift(prev[path[0]]);
   const first = NAV.nodes[path[0]];
+  if (path.length > 1 && navClearWide(f, NAV.nodes[path[1]])) return NAV.nodes[path[1]];   // skip a node we can already walk straight to
   if (Math.hypot(first.x - from.x, first.z - from.z) > 1.4) return first;
   return NAV.nodes[path[1]] || null;
 }

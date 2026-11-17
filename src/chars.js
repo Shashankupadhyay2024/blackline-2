@@ -241,6 +241,7 @@ const CASTS = {
   zombie: ['z_cop', 'z_war', 'z_girl', 'z_romero', 'z_maynard', 'z_skeleton', 'z_parasite'], brute: ['z_brute'],
   horror: ['h_mutant', 'h_nightshade', 'h_clown', 'h_crypto', 'h_mannequin', 'h_maw']
 };
+CASTS.mannequin = ['h_mannequin']; CASTS.stalker = ['h_nightshade', 'h_mutant'];
 CASTS.campaign = ['swat', 'swatguy', 'gasmask', 'alex', 'maya', 'evan', 'silas', 'voss'].concat(CASTS.civilian);
 function pickCast(list) { const have = list.filter(k => CharLib.has(k)); return have.length ? pick(have) : list[0]; }
 

@@ -145,7 +145,7 @@ function applyCarry() {
   HUD.slots(); return got;
 }
 function saveCheckpoint() {
-  if (state === 'loading' || state === 'menu' || state === 'end' || state === 'begin') return;
+  if (state === 'loading' || state === 'menu' || state === 'end' || state === 'begin' || LV.mode) return;
   Store.set('save', { mission: LV.id, cp: Mission.cp, inv, cur, hp: player.hp, armor: player.armor, nades: player.nades, keys: [...player.keys], stats: Object.assign({}, stats), data: Mission.data, when: Date.now() });
   updateContinue();
 }
@@ -168,7 +168,8 @@ const ACHIEVEMENTS = [
   ['ch1', 'Tomorrow\'s Photograph', 'Finish Chapter 1'], ['fb1', 'Whatever It Takes', 'Finish Flashback I'], ['ch2', 'Asset Status: Active', 'Finish Chapter 2'], ['fb2', 'The First Time', 'Finish Flashback II'],
   ['ch3', 'Apparently I Remembered', 'Finish Chapter 3'], ['betray', 'Nothing Personal', 'Finish Chapter 4'], ['ch4', 'Seventeen Years', 'Finish Chapter 5'], ['fb3', 'Breadcrumbs', 'Finish Flashback III'],
   ['hour', 'Judge', 'Finish Chapter 6'], ['ch5', 'Player 2 Connected', 'Finish the game'], ['mercy', 'Mercy', 'Spare Silas Kade'], ['remind', 'Remind Me', 'Trust Maya at the very end'],
-  ['lit', 'IT\'S LIT.', 'Find the secret of the fish tank'], ['ghost', 'Ghost', 'Finish Chapter 2 without triggering an alarm'], ['ace', 'Ace', 'Shoot down 8 interceptors in Chapter 4']
+  ['lit', 'IT\'S LIT.', 'Find the secret of the fish tank'], ['ghost', 'Ghost', 'Finish Chapter 2 without triggering an alarm'], ['ace', 'Ace', 'Shoot down 8 interceptors in Chapter 4'],
+  ['z10', 'Still Breathing', 'Reach round 10 in Zombies'], ['brwin', 'Last One Standing', 'Win a Battle Royale'], ['ward9', 'Discharged', 'Escape Ward 9'], ['mpwin', 'Top Fragger', 'Win an online match']
 ];
 /* lore / terminal popups */
 function showLore(title, html, dur) {

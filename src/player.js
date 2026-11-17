@@ -101,6 +101,7 @@ function updatePlayer(dt) {
   player.vel.x += (wx * speed - player.vel.x) * kk; player.vel.z += (wz * speed - player.vel.z) * kk;
   if ((k.Space || Pad.held(0)) && player.onGround && !player.crouch) { player.vel.y = 7.2; player.onGround = false; }
   player.vel.y -= 22 * dt;
+  if (LV.playerPhys) LV.playerPhys(dt);
   const px0 = player.pos.x, pz0 = player.pos.z;
   player.pos.addScaledVector(player.vel, dt);
   if (LV.blocked && LV.blocked(player.pos.x, player.pos.z)) { player.pos.x = px0; player.pos.z = pz0; player.vel.x *= -0.2; player.vel.z *= -0.2; }
@@ -204,6 +205,7 @@ function fireWeapon() {
       const h = castRay(origin, d, w.range, { ignoreCar: car });
       const end = h ? h.point : origin.clone().addScaledVector(d, w.range);
       if (i === 0 || w.pellets > 1 && i % 3 === 0) Tracers.add(mw, end, false);
+      if (i === 0 && LV.onShot) LV.onShot(mw, end);
       if (!h) continue;
       if (h.type === 'enemy') {
         const e = h.enemy; let dm = w.dmg * (player.jackT > 0 ? 1.15 : 1);
