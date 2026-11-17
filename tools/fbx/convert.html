@@ -1,0 +1,34 @@
+<!doctype html><html><body>
+<script type="importmap">{"imports":{"three":"./build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { FBXLoader } from './examples/jsm/loaders/FBXLoader.js';
+import { GLTFExporter } from './examples/jsm/exporters/GLTFExporter.js';
+const L = new FBXLoader(), X = new GLTFExporter();
+const b64 = buf => { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+window.convert = async (job) => {
+  const obj = await L.loadAsync(job.url);
+  if (job.kind === 'anim') {
+    const c = obj.animations[0];
+    return JSON.stringify({ key: job.key, dur: c.duration, tracks: c.tracks.map(t => ({ name: t.name, times: Array.from(t.times), values: Array.from(t.values) })) });
+  }
+  // character: strip baked animation, wait for textures, export skinned mesh + materials as GLB
+  obj.animations = [];
+  const texs = []; obj.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'specularMap', 'bumpMap', 'alphaMap', 'aoMap']) if (m[k]) texs.push([m, k]); });
+  const ok = img => img && ((img.complete && img.naturalWidth > 0) || (img.width > 0 && !(img instanceof HTMLImageElement)));
+  for (let i = 0; i < 300 && texs.some(([m, k]) => m[k] && img_pending(m[k].image)); i++) await new Promise(r => setTimeout(r, 50));
+  function img_pending(img) { return !img || (img instanceof HTMLImageElement && !img.complete); }
+  for (const [m, k] of texs) { const t = m[k]; if (!t || !ok(t.image)) m[k] = null; else if (k !== 'map' && k !== 'normalMap') m[k] = null; }
+  obj.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) if (m.specularMap !== undefined) m.specularMap = null; });
+  // multi-material meshes: build an index sorted by material so each material becomes one indexed group
+  obj.traverse(o => { const g = o.geometry; if (!o.isMesh || !g || !g.groups.length) return;
+    const src = g.index ? g.index.array : null, by = new Map();
+    for (const gr of g.groups) { const a = by.get(gr.materialIndex) || []; for (let i = gr.start; i < gr.start + gr.count; i++) a.push(src ? src[i] : i); by.set(gr.materialIndex, a); }
+    const all = []; g.clearGroups(); for (const [mi, a] of [...by].sort((x, y) => x[0] - y[0])) { g.addGroup(all.length, a.length, mi); for (const v of a) all.push(v); }
+    g.setIndex(all); });
+  const info = []; obj.traverse(o => { if (o.isSkinnedMesh) info.push(o.name + ':' + o.geometry.attributes.position.count + ':' + [].concat(o.material).map(m => m.name + '/' + (m.map ? 'map' : '-') + (m.normalMap ? 'n' : '')).join(',')); });
+  const glb = await X.parseAsync(obj, { binary: true, onlyVisible: false, maxTextureSize: 2048 });
+  return JSON.stringify({ key: job.key, info, glb: b64(glb) });
+};
+window.ready = true;
+</script></body></html>

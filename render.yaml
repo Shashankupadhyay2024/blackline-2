@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: blackline-2
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server/server.js
+    healthCheckPath: /health
+    autoDeploy: true

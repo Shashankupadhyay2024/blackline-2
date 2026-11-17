@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+node_modules/
+dist/
+mac/out/
+tools/.voicecache/
+tests/shots/
+*.log
+assets_out/
+web/
+tools/fbx/inbox/
+BLACKLINE2-game.zip

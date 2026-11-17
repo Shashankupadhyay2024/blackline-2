@@ -1,0 +1,94 @@
+{
+ "chars": {
+  "alex": {
+   "tex": 1024
+  },
+  "civ_brian": {
+   "tex": 512
+  },
+  "civ_bryce": {
+   "tex": 512
+  },
+  "civ_elizabeth": {
+   "tex": 512
+  },
+  "civ_jody": {
+   "tex": 512
+  },
+  "civ_kate": {
+   "tex": 512
+  },
+  "civ_martha": {
+   "tex": 512
+  },
+  "civ_remy": {
+   "tex": 512
+  },
+  "evan": {
+   "tex": 1024
+  },
+  "gasmask": {
+   "tex": 1024
+  },
+  "h_clown": {
+   "tex": 512
+  },
+  "h_crypto": {
+   "tex": 512
+  },
+  "h_mannequin": {
+   "tex": 512
+  },
+  "h_maw": {
+   "tex": 512
+  },
+  "h_mutant": {
+   "tex": 512
+  },
+  "h_nightshade": {
+   "tex": 512
+  },
+  "maya": {
+   "tex": 1024
+  },
+  "silas": {
+   "tex": 1024
+  },
+  "survivor": {
+   "tex": 512
+  },
+  "swat": {
+   "tex": 1024
+  },
+  "swatguy": {
+   "tex": 1024
+  },
+  "voss": {
+   "tex": 1024
+  },
+  "z_brute": {
+   "tex": 512
+  },
+  "z_cop": {
+   "tex": 512
+  },
+  "z_girl": {
+   "tex": 512
+  },
+  "z_maynard": {
+   "tex": 512
+  },
+  "z_parasite": {
+   "tex": 512
+  },
+  "z_romero": {
+   "tex": 512
+  },
+  "z_skeleton": {
+   "tex": 512
+  },
+  "z_war": {
+   "tex": 512
+  }
+ }
+}

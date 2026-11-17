@@ -1,0 +1,3 @@
+{ "models": { "soldier": { "file": "Soldier.glb", "maxTex": 1024 }, "xbot": { "file": "Xbot.glb" } },
+  "clips": [ { "file": "Soldier.glb", "names": ["Idle", "Walk", "Run"], "rename": {"Idle": "idle", "Walk": "walk", "Run": "run"} },
+             { "file": "Xbot.glb", "names": ["sneak_pose", "sad_pose", "agree", "headShake"] } ] }
