@@ -72,7 +72,7 @@ const CharLib = {
     return { root, bones, meshes, hipsRestY: bones.Hips ? bones.Hips.position.y : 1 };
   },
   /* clips retargeted to this model: rotations copied, hip height rescaled */
-  clips(key, hipsRestY) {
+  clips(key, hipsRestY, boneNames) {
     const ck = key + ':' + hipsRestY.toFixed(3); if (this.clipCache[ck]) return this.clipCache[ck];
     const out = {}, srcs = [];
     if (this.packs.anims && key !== 'legacy') srcs.push(this.packs.anims);
@@ -84,6 +84,7 @@ const CharLib = {
       for (const t of c.tracks) {
         const times = this.view(pk, t.t); let vals = this.view(pk, t.v);
         const bone = t.n.replace(/^mixamorig\d*/, 'mixamorig');
+        if (boneNames && !boneNames.has(bone)) continue;   // a track for a bone this character lacks would otherwise drive the whole model
         if (t.p === 'p') { const sh = srcHips || vals[1]; const r = hipsRestY / sh; const v2 = new Float32Array(vals.length); for (let i = 0; i < vals.length; i += 3) { v2[i] = 0; v2[i + 1] = vals[i + 1] * r; v2[i + 2] = 0; } vals = v2; }
         tracks.push(t.p === 'q' ? new THREE.QuaternionKeyframeTrack(bone + '.quaternion', times, vals) : new THREE.VectorKeyframeTrack(bone + '.position', times, vals));
       }
@@ -128,13 +129,14 @@ class HumanRig {
   constructor(o) {
     this.o = o; this.key = CharLib.has(o.char) ? o.char : 'legacy';
     const B = CharLib.build(this.key, o); this.model = B.root; this.bones = B.bones; this.meshes = B.meshes;
-    this.root = new THREE.Group(); this.inner = new THREE.Group(); this.root.add(this.inner); this.inner.add(this.model);
-    this.model.rotation.y = Math.PI;   // Mixamo characters face +Z; the game's forward is -Z
+    this.root = new THREE.Group(); this.inner = new THREE.Group(); this.root.add(this.inner);
+    this.turn = new THREE.Group(); this.turn.rotation.y = Math.PI; this.inner.add(this.turn); this.turn.add(this.model);   // Mixamo characters face +Z; the game's forward is -Z
     // normalize height from the hips
     this.model.updateMatrixWorld(true); const hp = new V3(); if (B.bones.Hips) B.bones.Hips.getWorldPosition(hp);
     const hipW = hp.y > 0.01 ? hp.y : 1; this.model.scale.multiplyScalar((o.height || 1.8) * 0.545 / hipW);
     this.arch = ARCH[o.arch || 'soldier'];
-    this.clips = CharLib.clips(this.key, B.hipsRestY);
+    const boneNames = new Set(); this.model.traverse(n => boneNames.add(n.name));
+    this.clips = CharLib.clips(this.key, B.hipsRestY, boneNames);
     this.mixer = new THREE.AnimationMixer(this.model);
     this.loco = {}; this.w = {};
     const names = ['idle', 'calm', 'walk', 'run', 'cidle', 'cwalk'];
@@ -217,7 +219,7 @@ class HumanRig {
       if (!this.dead || !this.gunDrop) {
         B.RightHand.getWorldPosition(T.v); B.LeftHand.getWorldPosition(T.w);
         const dir = T.w.clone().sub(T.v); if (dir.lengthSq() < 0.0004) dir.set(0, 0, -1).applyQuaternion(this.root.quaternion); dir.normalize();
-        T.m.lookAt(new V3(0, 0, 0), dir.clone().negate(), _ik.up); g.quaternion.setFromRotationMatrix(T.m);
+        T.m.lookAt(new V3(0, 0, 0), dir, _ik.up); g.quaternion.setFromRotationMatrix(T.m);   // barrel (-Z) runs from the grip hand out through the support hand
         this.root.worldToLocal(T.v); this.root.getWorldQuaternion(T.q); g.quaternion.premultiply(T.q.invert());
         g.position.copy(T.v).add(new V3(0, -0.03, 0)); g.updateMatrix();
         g.position.add(new V3(0, 0, -0.04).applyQuaternion(g.quaternion));

@@ -105,7 +105,8 @@ class Monster extends Enemy {
     else this.blockT = 0;
     const spd = this.T.speed; this.T._s = spd; this.T.speed = spd * this.speedMul * (this.flinch > 0 ? 0.25 : 1) * (this.retreatT > 0 ? 1.8 : 1);
     this.move(dt); this.T.speed = spd;
-    if (dist < 6 || !this.moveTarget) this.faceYaw = Math.atan2(-dx, -dz);
+    // face where we're walking (next waypoint), or the target when attacking / up close
+    { const g = this.unstickT > 0 ? this.unstickP : (this.wp && dist > 3 ? this.wp : (this.moveTarget && dist > 2.5 ? this.moveTarget : tp)); if (g) { const gx = g.x - this.pos.x, gz = g.z - this.pos.z; if (gx * gx + gz * gz > 0.01) this.faceYaw = Math.atan2(-gx, -gz); } }
     this.animate(dt);
   }
   animate(dt) {
