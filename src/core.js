@@ -156,6 +156,7 @@ function castRay(o, d, max, opt) {
     if (c.noRay) continue;
     if (c.car && (c.car === opt.ignoreCar || c.car === opt.ignoreCar2)) continue;
     if (c.ref && c.ref === opt.ignore) continue;
+    if (c.box.containsPoint(o)) continue;   // a ray that starts inside a (loose) box, e.g. next to a rock, must not hit it at 0 m
     if (_ray.intersectBox(c.box, _tv)) {
       const dist = _tv.distanceTo(o);
       if (dist < best) { best = dist; res = { type: c.car ? 'car' : 'static', col: c, point: _tv.clone(), dist }; }

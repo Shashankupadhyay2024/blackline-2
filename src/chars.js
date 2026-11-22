@@ -129,6 +129,7 @@ class HumanRig {
     this.o = o; this.key = CharLib.has(o.char) ? o.char : 'legacy';
     const B = CharLib.build(this.key, o); this.model = B.root; this.bones = B.bones; this.meshes = B.meshes;
     this.root = new THREE.Group(); this.inner = new THREE.Group(); this.root.add(this.inner); this.inner.add(this.model);
+    this.model.rotation.y = Math.PI;   // Mixamo characters face +Z; the game's forward is -Z
     // normalize height from the hips
     this.model.updateMatrixWorld(true); const hp = new V3(); if (B.bones.Hips) B.bones.Hips.getWorldPosition(hp);
     const hipW = hp.y > 0.01 ? hp.y : 1; this.model.scale.multiplyScalar((o.height || 1.8) * 0.545 / hipW);

@@ -7,7 +7,7 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parent
 SRC = ROOT / "src"
 ORDER = ["voicepack.js", "core.js", "post.js", "input.js", "fx.js", "audio2.js", "voice.js", "models.js", "charpack.js", "chars.js", "world.js", "builders.js", "entities.js", "entities2.js", "player.js", "guns2.js", "hud.js", "mission.js", "story.js",
-         "m1.js", "f1.js", "m2.js", "m3.js", "f2.js", "m3b.js", "m4.js", "f3.js", "m5.js", "range.js", "monsters.js", "zombies.js", "br.js", "horror.js", "net.js", "main.js"]
+         "m1.js", "f1.js", "m2.js", "m3.js", "f2.js", "m3b.js", "m4.js", "f3.js", "m5.js", "range.js", "monsters.js", "zombies.js", "br.js", "horror.js", "net.js", "account.js", "main.js"]
 
 three = (ROOT / "vendor" / "three.min.js").read_text(encoding="utf-8")
 game = "\n".join(f"/* ---- {n} ---- */\n" + (SRC / n).read_text(encoding="utf-8") for n in ORDER)

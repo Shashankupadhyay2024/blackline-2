@@ -294,6 +294,7 @@ function boot() {
   const next = () => {
     if (i >= steps.length) {
       $('loading').classList.add('hidden'); requestAnimationFrame(frame);
+      setTimeout(() => Account.boot(), 300);
       if (LV.lobby) { state = 'menu'; showScreen(null); LV.lobby(); return; }
       if (PARAMS.get('start') || PARAMS.get('cont')) { state = 'begin'; showBegin(PARAMS.get('cont') ? 'cont' : 'start'); }
       else { state = 'menu'; showScreen('menu'); updateContinue(); }
@@ -329,6 +330,7 @@ $('btn-new').onclick = () => { AudioSys.init(); AudioSys.ui('click'); newGame();
 $('btn-continue').onclick = () => { AudioSys.ui('click'); continueGame(); };
 $('btn-chapters').onclick = () => { AudioSys.init(); buildChapterUI(); showScreen('chapters'); };
 $('btn-chap-back').onclick = () => showScreen('menu');
+$('btn-profile').onclick = () => { AudioSys.init(); Account.open(); };
 $('btn-settings').onclick = () => { AudioSys.init(); settingsReturn = 'menu'; showScreen('settings'); };
 $('btn-controls').onclick = () => { AudioSys.init(); settingsReturn = 'menu'; showScreen('controls'); };
 $('btn-quit').onclick = () => { showScreen('quit'); try { window.close(); } catch (e) { } };
@@ -353,6 +355,6 @@ window.__BL = {
   look(yaw, pitch) { player.yaw = yaw; player.pitch = pitch || 0; },
   keys, mouseDown, give: giveWeapon, weapon(k) { switchWeapon(k); }, rigs: () => Rigs, buildHuman, CharLib, stats, castRay, colliders: () => colliders, terrainH, camera, tp(x, z, y) { player.pos.set(x, y !== undefined ? y : groundAt(x, z, 999), z); player.vel.set(0, 0, 0); }, get gameTime() { return gameTime; },
   sim(sec) { const n = Math.round(sec * 30); for (let i = 0; i < n; i++) { realTime += 1 / 30; if (slowUntil && realTime > slowUntil) { timeScale = 1; slowUntil = 0; } Pad.poll(1 / 30); padMenus(1 / 30); if (state === 'play' || state === 'intro') padGameplay(1 / 30); if (state === 'play' || state === 'dead') update(1 / 30 * timeScale); mouseDX = mouseDY = 0; firePressed = false; if (state === 'play' && !player.alive && realTime - player.diedAt > 1.9) { if (LV.respawn) LV.respawn(); else showDeath(); } } return state; },
-  standIn: (x, z, o) => standIn(x, z, o), its: () => interactables, navNext, nearestVisibleNode, NAV, navClear, Voice, detonate, addEnemy, audio: () => AudioSys, vm: () => VM, opt: () => W_OPT, goStep(i) { Mission.go(i); }, save() { const st = state; state = 'play'; saveCheckpoint(); state = st; }, die() { hurtPlayer(99999); }, restart() { restartCheckpoint(); }, showDeath() { showDeath(); }, go: goMission, mouse(dx, dy) { mouseDX = dx; mouseDY = dy; }
+  standIn: (x, z, o) => standIn(x, z, o), addMonster, its: () => interactables, navNext, nearestVisibleNode, NAV, navClear, Voice, detonate, addEnemy, audio: () => AudioSys, vm: () => VM, opt: () => W_OPT, goStep(i) { Mission.go(i); }, save() { const st = state; state = 'play'; saveCheckpoint(); state = st; }, die() { hurtPlayer(99999); }, restart() { restartCheckpoint(); }, showDeath() { showDeath(); }, go: goMission, mouse(dx, dy) { mouseDX = dx; mouseDY = dy; }
 };
 boot();

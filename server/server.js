@@ -2,16 +2,20 @@
    - GET /            → the game (docs/index.html + docs/assets, same build as GitHub Pages)
    - GET /health      → ok (Render health check)
    - WS  /ws          → lobby + match relay
+   - POST /api/register, /api/login {name, pass} · GET /api/me · PUT /api/save {data} (Bearer token)
+   - GET /api/leaderboard · player data lives in Postgres when DATABASE_URL is set (see server/db.js)
    Protocol (JSON): {t:'list'} · {t:'host', name, mode, map, max, public} · {t:'join', code, name}
                     {t:'leave'} · {t:'msg', to?, d} (relayed to room; host-authoritative games)  */
 const http = require('http'), fs = require('fs'), path = require('path');
 const { WebSocketServer } = require('ws');
+const DB = require('./db');
 const WEB = path.join(__dirname, '..', 'docs'), PORT = process.env.PORT || 10000;
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
 
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/health') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
+  if (url.startsWith('/api/') && url !== '/api/rooms') return api(req, res, url);
   if (url === '/api/rooms') { res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); return res.end(JSON.stringify(publicRooms())); }
   let f = path.normalize(path.join(WEB, url === '/' ? 'index.html' : url));
   if (!f.startsWith(WEB)) { res.writeHead(403); return res.end(); }
@@ -21,6 +25,33 @@ const server = http.createServer((req, res) => {
     fs.createReadStream(f).pipe(res);
   });
 });
+
+/* ---------- accounts + cloud saves ---------- */
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS' };
+const hits = new Map();   // ip -> [count, windowStart]   (simple brute-force guard on login/register)
+function api(req, res, url) {
+  const out = (code, o) => { res.writeHead(code, Object.assign({ 'Content-Type': 'application/json' }, CORS)); res.end(JSON.stringify(o)); };
+  if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
+  const tok = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  let body = ''; req.on('data', c => { body += c; if (body.length > 300000) req.destroy(); });
+  req.on('end', async () => {
+    let b = {}; try { b = body ? JSON.parse(body) : {}; } catch (e) { return out(400, { error: 'Bad JSON' }); }
+    try {
+      if (url === '/api/register' || url === '/api/login') {
+        const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0], h = hits.get(ip) || [0, Date.now()];
+        if (Date.now() - h[1] > 60000) { h[0] = 0; h[1] = Date.now(); } h[0]++; hits.set(ip, h);
+        if (h[0] > 20) return out(429, { error: 'Too many attempts. Wait a minute.' });
+        const r = url === '/api/register' ? await DB.register(b.name, b.pass) : await DB.login(b.name, b.pass);
+        return out(r.error ? 400 : 200, r);
+      }
+      if (url === '/api/me') { const r = await DB.me(tok); return out(r.error ? 401 : 200, r); }
+      if (url === '/api/save' && (req.method === 'PUT' || req.method === 'POST')) { const r = await DB.save(tok, b.data); return out(r.error ? 401 : 200, r); }
+      if (url === '/api/leaderboard') return out(200, await DB.leaderboard());
+      if (url === '/api/status') return out(200, { storage: DB.store.kind, persistent: DB.store.persistent });
+      out(404, { error: 'Not found' });
+    } catch (e) { console.error('api', url, e.message); out(500, { error: 'Server error' }); }
+  });
+}
 
 const rooms = new Map();   // code -> { code, host, name, mode, map, max, public, players: Map(id -> ws), created }
 let nextId = 1;
@@ -70,4 +101,5 @@ wss.on('connection', ws => {
   ws.on('close', () => leave(ws));
 });
 setInterval(() => { for (const ws of wss.clients) { if (!ws.alive) { ws.terminate(); continue; } ws.alive = false; ws.ping(); } }, 25000);
-server.listen(PORT, () => console.log('BLACKLINE 2 server on :' + PORT));
+DB.store.init().then(() => server.listen(PORT, () => console.log('BLACKLINE 2 server on :' + PORT + ' · player data: ' + DB.store.kind + (DB.store.persistent ? '' : ' (NOT persistent: set DATABASE_URL)'))))
+  .catch(e => { console.error('Database init failed:', e.message); process.exit(1); });

@@ -14,7 +14,7 @@ const MP = {
     if (/^https?:$/.test(location.protocol) && !/github\.io$/.test(location.hostname) && location.hostname) return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
     return Store.get('mp_server', MP_DEFAULT_SERVER);
   },
-  name() { let n = Store.get('mp_name', ''); if (!n) { n = 'Operator' + Math.floor(100 + Math.random() * 900); Store.set('mp_name', n); } return n; },
+  name() { const a = Account.user(); if (a) return a.name; let n = Store.get('mp_name', ''); if (!n) { n = 'Operator' + Math.floor(100 + Math.random() * 900); Store.set('mp_name', n); } return n; },
   connect(cb) {
     if (this.ws && this.ws.readyState === 1) { cb && cb(); return; }
     const url = this.server(); this.setStatus('Connecting to ' + url.replace(/^wss?:\/\//, '').replace(/\/ws$/, '') + '… (a sleeping server can take up to a minute to wake)');
@@ -49,6 +49,7 @@ const MP = {
     this.scores[by] = (this.scores[by] || 0) + 1; this.renderScores();
     const n = id => id === this.id ? 'You' : (this.names[id] || 'Player');
     HUD.feed(n(by) + (head ? ' ✦ ' : ' ✕ ') + n(victim), by === this.id ? 'gold' : victim === this.id ? 'red' : '');
+    if (!this.practice && (by === this.id || victim === this.id)) { const s = Store.get('mp_stats', { kills: 0, deaths: 0, wins: 0 }); if (by === this.id) s.kills++; else s.deaths++; Store.set('mp_stats', s); }
     if (by === this.id && !this.practice) { stats.kills++; if (head) stats.heads++; HUD.kill(head); }
     const r = this.remotes[victim]; if (r) r.kill();
     if (this.scores[by] >= this.goal && !this.roundOver) { this.relay({ k: 'win', id: by }); this.endRound(by); }
@@ -56,7 +57,7 @@ const MP = {
   endRound(id) {
     if (this.roundOver) return; this.roundOver = 8;
     HUD.notify(id === this.id ? 'YOU WIN THE MATCH' : (this.names[id] || 'Someone') + ' wins the match', 'Next match in 8 seconds', 'obj');
-    if (id === this.id) achieve('mpwin', 'Top Fragger', 'Win an online match');
+    if (id === this.id && !this.practice) { achieve('mpwin', 'Top Fragger', 'Win an online match'); const s = Store.get('mp_stats', { kills: 0, deaths: 0, wins: 0 }); s.wins++; Store.set('mp_stats', s); }
   },
   renderScores() {
     const el = $('mp-score'); if (!el) return;

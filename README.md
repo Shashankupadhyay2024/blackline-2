@@ -40,6 +40,14 @@ The multiplayer lobby and a copy of the browser game run from one small Node ser
 
 Click the button, sign in to Render, and press **Apply**. The free plan works. `render.yaml` sets everything up: `npm install`, `node server/server.js`, health check at `/health`.
 
+**Player accounts and cloud saves.** Sign in from **Profile** on the main menu and your campaign save, settings, achievements and records follow you to any device, with a leaderboard. Render's free disk is wiped on every restart, so the server stores accounts in a free [Neon](https://neon.com) Postgres database. One command sets that up (Neon sign-in, Render API key, redeploy):
+
+```bash
+bash setup-db.sh
+```
+
+Without a database the server falls back to a local file, which is fine on your own machine.
+
 Run it locally:
 
 ```bash
